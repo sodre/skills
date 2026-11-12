@@ -76,17 +76,26 @@ open_url() {
 }
 
 # pause "msg" waits for the human to confirm they've done the manual part.
+# The blank line sets the prompt apart from any command output above it.
 pause() {
-  printf '  %s%s%s ' "$DIM" "${1:-Press Enter to continue}" "$RESET"
+  printf '\n  %s%s%s ' "$DIM" "${1:-Press Enter to continue}" "$RESET"
   read -r _ || true
 }
 
-# confirm "question" is a y/N gate; returns success on yes.
+# confirm "question" is a y/n gate; returns success on yes. There is no
+# default: it re-asks until it gets y/yes or n/no, so a stray Enter can't
+# skip a step. Fails at EOF.
 confirm() {
   local reply=""
-  printf '  %s? %s [y/N] ' "$YELLOW" "$1"
-  read -r reply || true
-  [[ "$reply" =~ ^[Yy] ]]
+  printf '\n'
+  while true; do
+    printf '  %s? %s [y/n]%s ' "$YELLOW" "$1" "$RESET"
+    read -r reply || { printf '\n'; return 1; }
+    case "$(printf '%s' "$reply" | tr '[:upper:]' '[:lower:]')" in
+      y|yes) return 0 ;;
+      n|no)  return 1 ;;
+    esac
+  done
 }
 
 # _existing KEY: current value of KEY in ENV_FILE, if any, with write_env's single
